@@ -1,1 +1,42 @@
-,sjmndcljsdbcn
+<!DOCTYPE html>
+<html lang="ne">
+<head>
+<meta charset="UTF-8">
+<title>Book Reader</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body{
+  font-family:serif;
+  max-width:800px;
+  margin:auto;
+  padding:20px;
+}
+h1{text-align:center}
+.chapter{margin-bottom:40px}
+</style>
+</head>
+<body>
+
+<h1 id="title"></h1>
+<div id="content"></div>
+
+<script>
+const book = JSON.parse(localStorage.getItem('book'));
+
+if(!book){
+  document.body.innerHTML = "<p>No book found</p>";
+}else{
+  document.getElementById('title').innerText = book.title || '';
+  const box = document.getElementById('content');
+
+  book.chapters.forEach(ch=>{
+    const d = document.createElement('div');
+    d.className = 'chapter';
+    d.innerHTML = `<h2>${ch.title}</h2>` + ch.content;
+    box.appendChild(d);
+  });
+}
+</script>
+
+</body>
+</html>
