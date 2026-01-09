@@ -4,36 +4,33 @@
 <meta charset="UTF-8">
 <title>Book Reader</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+
 <style>
-body{
-  font-family:serif;
-  max-width:800px;
-  margin:auto;
-  padding:20px;
+@font-face{
+  font-family:Kalimati;
+  src:url('https://raw.githubusercontent.com/sajandhakal/Kalimati-Font/master/Kalimati.ttf');
 }
-h1{text-align:center}
+body{font-family:Kalimati,serif;max-width:800px;margin:auto;padding:20px}
 .chapter{margin-bottom:40px}
 </style>
 </head>
+
 <body>
 
-<h1 id="title"></h1>
 <div id="content"></div>
 
 <script>
-const book = JSON.parse(localStorage.getItem('book'));
+const id=new URLSearchParams(location.search).get('book');
+const books=JSON.parse(localStorage.getItem('books'))||{};
+const book=books[id];
 
 if(!book){
-  document.body.innerHTML = "<p>No book found</p>";
+  document.body.innerHTML="No book found";
 }else{
-  document.getElementById('title').innerText = book.title || '';
-  const box = document.getElementById('content');
-
-  book.chapters.forEach(ch=>{
-    const d = document.createElement('div');
-    d.className = 'chapter';
-    d.innerHTML = `<h2>${ch.title}</h2>` + ch.content;
-    box.appendChild(d);
+  const box=document.getElementById('content');
+  box.innerHTML=`<h1>${book.title}</h1>`;
+  book.chapters.forEach(c=>{
+    box.innerHTML+=`<div class="chapter"><h2>${c.title}</h2>${c.content}</div>`;
   });
 }
 </script>
