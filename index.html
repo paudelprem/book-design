@@ -2,32 +2,85 @@
 <html lang="ne">
 <head>
 <meta charset="UTF-8">
-<title>note.me – Book Editor</title>
+<title>note.me – Online Book Editor</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
+<!-- Quill -->
 <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
 
 <style>
 @font-face{
-  font-family:Kalimati;
-  src:url('https://raw.githubusercontent.com/sajandhakal/Kalimati-Font/master/Kalimati.ttf');
+  font-family: 'Kalimati';
+  src: url('https://raw.githubusercontent.com/sajandhakal/Kalimati-Font/master/Kalimati.ttf');
 }
-body{margin:0;font-family:Kalimati,serif;height:100vh;display:flex;flex-direction:column}
-header{background:#1e40af;color:#fff;padding:8px}
+
+body{
+  margin:0;
+  font-family:Kalimati, serif;
+  height:100vh;
+  display:flex;
+  flex-direction:column;
+}
+header{
+  background:#1e40af;
+  color:#fff;
+  padding:8px;
+}
+header input{
+  width:100%;
+  font-size:18px;
+  padding:6px;
+  font-family:Kalimati, serif;
+}
 main{flex:1;display:flex}
-#left{width:260px;background:#f1f5f9;padding:10px;overflow:auto}
+#left{
+  width:260px;
+  background:#f1f5f9;
+  padding:10px;
+  overflow:auto;
+}
 #editorWrap{flex:1;display:flex;flex-direction:column}
-.chapter{background:#fff;padding:6px;margin-bottom:4px;border-radius:4px;cursor:pointer}
-.chapter.active{background:#dbeafe}
+.toolbar{
+  padding:6px;
+  border-bottom:1px solid #ccc;
+  background:#fafafa;
+}
 .toolbar button{margin:2px}
-#editor{flex:1;font-size:18px;line-height:1.7}
+#editor{
+  flex:1;
+  font-size:18px;
+  line-height:1.7;
+  font-family:Kalimati, serif;
+}
+.chapter{
+  background:#fff;
+  padding:6px;
+  margin-bottom:4px;
+  border-radius:4px;
+  cursor:pointer;
+}
+.chapter.active{background:#dbeafe}
+
+/* table styles */
+.table-grid td,.table-grid th{border:1px solid #000}
+.table-borderless td,.table-borderless th{border:none}
+.table-zebra tr:nth-child(even){background:#f8fafc}
+
+/* table resize handle */
+td,th{position:relative}
+.col-resize{
+  position:absolute;
+  right:0; top:0;
+  width:5px; height:100%;
+  cursor:col-resize;
+}
 </style>
 </head>
 
 <body>
 
 <header>
-  <input id="bookTitle" placeholder="पुस्तक शीर्षक" style="width:100%;font-size:18px">
+  <input id="bookTitle" placeholder="पुस्तक शीर्षक">
 </header>
 
 <main>
@@ -42,82 +95,107 @@ main{flex:1;display:flex}
     <div class="toolbar">
       <button onclick="addTopic()">➕ विषय</button>
       <button onclick="addPara()">➕ परिच्छेद</button>
-      <button onclick="addTable()">➕ तालिका</button>
-      <button onclick="insertCover()">🖼️ कभर</button>
-      <button onclick="insertTitlePage()">📄 Title</button>
+      <button onclick="addTable()">➕ Table</button>
+
+      <!-- quick highlight -->
+      <button onclick="hl('yellow')">🟨</button>
+      <button onclick="hl('lightgreen')">🟩</button>
+      <button onclick="hl('pink')">🟥</button>
+
+      <!-- quick font colour -->
+      <button onclick="fc('red')">🔴</button>
+      <button onclick="fc('blue')">🔵</button>
+      <button onclick="fc('black')">⚫</button>
+
+      <!-- table controls -->
+      <button onclick="addRowBelow()">➕ Row</button>
+      <button onclick="addColRight()">➕ Col</button>
+      <button onclick="delRow()">➖ Row</button>
+      <button onclick="delCol()">➖ Col</button>
+      <button onclick="toggleHeader()">🔁 Header</button>
+
+      <!-- table style -->
+      <button onclick="setTableStyle('grid')">▦</button>
+      <button onclick="setTableStyle('borderless')">▢</button>
+      <button onclick="setTableStyle('zebra')">▤</button>
+
       <button onclick="exportPDF()">📄 PDF</button>
       <button onclick="openReader()">📖 Read</button>
     </div>
+
     <div id="editor"></div>
   </div>
 </main>
 
+<!-- libs -->
 <script src="https://cdn.quilljs.com/1.3.7/quill.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
 <script>
-/* STORAGE */
+/* ---------- MULTI BOOK STORAGE ---------- */
 let books = JSON.parse(localStorage.getItem('books')) || {};
 let currentBookId = localStorage.getItem('currentBookId');
+let book = books[currentBookId] || { title:'', chapters:[], current:null };
 
 function saveAll(){
+  books[currentBookId] = book;
   localStorage.setItem('books', JSON.stringify(books));
   localStorage.setItem('currentBookId', currentBookId);
 }
 
-/* BOOK */
+/* ---------- NEW / LOAD BOOK ---------- */
 function newBook(){
-  const id=Date.now();
-  books[id]={title:'',chapters:[],current:null};
-  currentBookId=id;
+  currentBookId = Date.now().toString();
+  book = { title:'', chapters:[], current:null };
   saveAll();
-  loadBook(id);
-}
-
-function loadBook(id){
-  currentBookId=id;
-  book=books[id];
-  document.getElementById('bookTitle').value=book.title;
   renderChapters();
-  if(book.current) loadChapter(book.current);
-  else q.setText('');
+  q.setText('');
+  document.getElementById('bookTitle').value='';
 }
 
-let book = books[currentBookId] || {title:'',chapters:[],current:null};
-
-document.getElementById('bookTitle').oninput=e=>{
-  book.title=e.target.value; saveAll();
+document.getElementById('bookTitle').value = book.title || '';
+document.getElementById('bookTitle').oninput = e=>{
+  book.title = e.target.value;
+  saveAll();
 };
 
-/* QUILL */
-const q=new Quill('#editor',{
+/* ---------- QUILL (Font colour + Highlight enabled) ---------- */
+const q = new Quill('#editor',{
   theme:'snow',
-  modules:{toolbar:[
-    [{header:[1,2,3,false]}],
-    ['bold','italic','underline'],
-    [{list:'ordered'},{list:'bullet'}],
-    ['image'],['clean']
-  ]}
+  modules:{
+    toolbar:[
+      [{ header:[1,2,3,false] }],
+      ['bold','italic','underline','strike'],
+      [{ color:[] }, { background:[] }],   // 🎨 font colour + highlight
+      [{ list:'ordered' }, { list:'bullet' }],
+      ['image'],
+      ['clean']
+    ]
+  }
 });
 
-/* CHAPTER */
+/* ---------- CHAPTER ---------- */
 function addChapter(){
-  const t=prompt("अध्याय शीर्षक");
-  if(!t)return;
-  const c={id:Date.now(),title:t,content:''};
-  book.chapters.push(c); book.current=c.id;
-  saveAll(); renderChapters(); loadChapter(c.id);
+  const t = prompt("अध्याय शीर्षक");
+  if(!t) return;
+  const c = { id:Date.now(), title:t, content:'' };
+  book.chapters.push(c);
+  book.current = c.id;
+  saveAll();
+  renderChapters();
+  loadChapter(c.id);
 }
 
 function renderChapters(){
-  const box=document.getElementById('chapters');
+  const box = document.getElementById('chapters');
   box.innerHTML='';
   book.chapters.forEach(c=>{
     const d=document.createElement('div');
     d.className='chapter'+(c.id===book.current?' active':'');
-    d.innerHTML=`${c.title}
+    d.innerHTML = `
+      ${c.title}
       <span style="float:right;color:red"
-      onclick="deleteChapter(${c.id},event)">✖</span>`;
+            onclick="deleteChapter(${c.id},event)">✖</span>`;
     d.onclick=()=>loadChapter(c.id);
     box.appendChild(d);
   });
@@ -125,66 +203,128 @@ function renderChapters(){
 
 function deleteChapter(id,e){
   e.stopPropagation();
-  if(!confirm("हटाउने?"))return;
-  book.chapters=book.chapters.filter(c=>c.id!==id);
-  book.current=book.chapters[0]?.id||null;
-  saveAll(); renderChapters();
+  if(!confirm("हटाउने?")) return;
+  book.chapters = book.chapters.filter(c=>c.id!==id);
+  book.current = book.chapters[0]?.id || null;
+  saveAll();
+  renderChapters();
   if(book.current) loadChapter(book.current); else q.setText('');
 }
 
 function loadChapter(id){
-  const c=book.chapters.find(x=>x.id===id);
-  if(!c)return;
-  book.current=id;
-  q.root.innerHTML=c.content;
+  const c = book.chapters.find(x=>x.id===id);
+  if(!c) return;
+  book.current = id;
+  q.root.innerHTML = c.content;
   renderChapters();
 }
 
 q.on('text-change',()=>{
-  const c=book.chapters.find(x=>x.id===book.current);
-  if(c){c.content=q.root.innerHTML; saveAll();}
+  const c = book.chapters.find(x=>x.id===book.current);
+  if(c){
+    c.content = q.root.innerHTML;
+    saveAll();
+  }
 });
 
-/* CONTENT */
+/* ---------- CONTENT ---------- */
 function addTopic(){
-  q.clipboard.dangerouslyPasteHTML(q.getSelection(true).index,
-  `<h2>विषय शीर्षक</h2><p><br></p>`);
+  q.clipboard.dangerouslyPasteHTML(
+    q.getSelection(true).index,
+    `<h2>विषय शीर्षक</h2><p><br></p>`
+  );
 }
 function addPara(){
-  q.insertText(q.getSelection(true).index,"परिच्छेद लेख्नुहोस्...\n");
+  q.insertText(q.getSelection(true).index, "परिच्छेद लेख्नुहोस्...\n");
 }
+
+/* ---------- FONT COLOUR & HIGHLIGHT ---------- */
+function hl(color){
+  const r=q.getSelection();
+  if(r) q.format('background', color);
+}
+function fc(color){
+  const r=q.getSelection();
+  if(r) q.format('color', color);
+}
+
+/* ---------- TABLE (exact rows/cols) ---------- */
+let activeTable=null, activeCell=null;
+
+document.addEventListener('click',e=>{
+  const cell=e.target.closest('td,th');
+  if(cell){
+    activeCell=cell;
+    activeTable=cell.closest('table');
+  }
+});
+
 function addTable(){
-  q.clipboard.dangerouslyPasteHTML(q.getSelection(true).index,
-  `<table border="1" style="width:100%">
-  <tr><th>शीर्षक</th><th>शीर्षक</th></tr>
-  <tr><td>डाटा</td><td>डाटा</td></tr></table><p><br></p>`);
+  let rows=parseInt(prompt("कति Row?"));
+  let cols=parseInt(prompt("कति Column?"));
+  if(!rows||!cols) return;
+
+  let html='<table class="table-grid" style="width:100%;border-collapse:collapse">';
+  for(let r=0;r<rows;r++){
+    html+='<tr>';
+    for(let c=0;c<cols;c++) html+='<td></td>';
+    html+='</tr>';
+  }
+  html+='</table><p><br></p>';
+  q.clipboard.dangerouslyPasteHTML(q.getSelection(true).index, html);
 }
 
-/* FRONT MATTER */
-function insertCover(){
-  q.clipboard.dangerouslyPasteHTML(0,
-  `<div style="text-align:center;padding:120px">
-   <h1>${book.title}</h1></div><div style="page-break-after:always"></div>`);
+function addRowBelow(){
+  if(!activeCell) return;
+  const row=activeCell.parentElement;
+  const cols=row.children.length;
+  const nr=activeTable.insertRow(row.rowIndex+1);
+  for(let i=0;i<cols;i++) nr.insertCell();
 }
-function insertTitlePage(){
-  q.clipboard.dangerouslyPasteHTML(0,
-  `<div style="text-align:center;padding:120px">
-   <h1>${book.title}</h1></div>
-   <div style="page-break-after:always"></div>`);
+function addColRight(){
+  if(!activeCell) return;
+  const ci=activeCell.cellIndex+1;
+  [...activeTable.rows].forEach(r=>r.insertCell(ci));
+}
+function delRow(){
+  if(activeCell) activeTable.deleteRow(activeCell.parentElement.rowIndex);
+}
+function delCol(){
+  if(!activeCell) return;
+  const ci=activeCell.cellIndex;
+  [...activeTable.rows].forEach(r=>r.deleteCell(ci));
+}
+function toggleHeader(){
+  if(!activeTable) return;
+  const row=activeTable.rows[0];
+  const isTh=row.cells[0].tagName==='TH';
+  [...row.cells].forEach(c=>{
+    const t=c.innerText;
+    const n=document.createElement(isTh?'td':'th');
+    n.innerText=t;
+    c.replaceWith(n);
+  });
+}
+function setTableStyle(t){
+  if(!activeTable) return;
+  activeTable.classList.remove('table-grid','table-borderless','table-zebra');
+  if(t==='grid') activeTable.classList.add('table-grid');
+  if(t==='borderless') activeTable.classList.add('table-borderless');
+  if(t==='zebra') activeTable.classList.add('table-zebra');
 }
 
-/* PDF */
+/* ---------- PDF & READER ---------- */
 function exportPDF(){
-  html2pdf().from(document.getElementById('editor')).save(book.title+'.pdf');
+  html2pdf().from(document.getElementById('editor'))
+    .save((book.title||'book')+'.pdf');
 }
-
-/* READER */
 function openReader(){
   window.open('reader.html?book='+currentBookId,'_blank');
 }
 
 /* INIT */
-if(currentBookId) loadBook(currentBookId);
+if(!currentBookId) newBook();
+else loadChapter(book.current);
 </script>
 
 </body>
