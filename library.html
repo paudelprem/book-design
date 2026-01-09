@@ -1,1 +1,50 @@
+<!DOCTYPE html>
+<html lang="ne">
+<head>
+<meta charset="UTF-8">
+<title>Digital Library</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+@font-face{
+  font-family:Kalimati;
+  src:url('https://raw.githubusercontent.com/sajandhakal/Kalimati-Font/master/Kalimati.ttf');
+}
+body{font-family:Kalimati,serif;max-width:800px;margin:auto;padding:20px}
+input{width:100%;padding:8px;margin-bottom:10px}
+.book{border-bottom:1px solid #ccc;padding:10px;cursor:pointer}
+.book:hover{background:#f1f5f9}
+</style>
+</head>
+
+<body>
+
+<h1>📚 सार्वजनिक पुस्तकालय</h1>
+<input id="search" placeholder="खोज्नुहोस्">
+
+<div id="list"></div>
+
+<script>
+const books=JSON.parse(localStorage.getItem('books'))||{};
+const list=document.getElementById('list');
+
+function render(q=''){
+  list.innerHTML='';
+  Object.entries(books).forEach(([id,b])=>{
+    const t=(b.title||'').toLowerCase();
+    if(!t.includes(q.toLowerCase()))return;
+    const d=document.createElement('div');
+    d.className='book';
+    d.innerHTML=`<h3>${b.title}</h3>`;
+    d.onclick=()=>location=`reader.html?book=${id}`;
+    list.appendChild(d);
+  });
+}
+
+document.getElementById('search').oninput=e=>render(e.target.value);
+render();
+</script>
+
+</body>
+</html>
 
